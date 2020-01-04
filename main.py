@@ -1,6 +1,7 @@
 from PIL import ImageGrab
 from collections import deque
 import os
+import sys
 import win32api
 import win32con
 import time
@@ -115,9 +116,14 @@ def main(expected_score):
     if expected_score % 2 == 1:
         if q.popleft():
             press_kb_button('left')
+            time.sleep(THINK_TIME)
         else:
             press_kb_button('right')
+            time.sleep(THINK_TIME)
 
 
 if __name__ == '__main__':
-    main(453)
+    if len(sys.argv) == 1:
+        main(100)
+    else:
+        main(int(sys.argv[1]))

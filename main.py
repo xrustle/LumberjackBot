@@ -9,17 +9,17 @@ import time
 DEBUG = False  # If you need to save snapshots to analise and print data
 
 # Performance
-CLICK_TIME = 0.02
-THINK_TIME = 0.02
+CLICK_TIME = 0.005  # 0.02
+THINK_TIME = 0.017  # 0.02
 
 # Coordinates
 X0 = 472
-Y0 = 780
+Y0 = 770
 W = 488 - X0
 H = 957 - Y0
 START_CURSOR_POSITION = (33, 90)
-BRANCHES_Y = list(range(30, 131, 25))
-NEW_BRANCH_MAX_Y = 18
+BRANCHES_Y = list(range(40, 141, 25))
+NEW_BRANCH_MAX_Y = 25
 LEFT_X = 0
 RIGHT_X = 15
 
@@ -89,41 +89,42 @@ def main(expected_score):
     """
     mouse_pos(START_CURSOR_POSITION)
     mouse_click()
-    time.sleep(THINK_TIME)
+    time.sleep(THINK_TIME * 2)
     press_kb_button('space')
     time.sleep(0.1)
     q = first_parse()
+    think_time = THINK_TIME * 2
 
     if DEBUG:
         new_branch_is_not_left(-1)
         print('Start', q)
 
     for i in range(0, expected_score - 1, 2):
+        if i > 100:
+            think_time = THINK_TIME
         if q.popleft():
             press_kb_button('left')
-            time.sleep(THINK_TIME)
+            time.sleep(think_time)
             press_kb_button('left')
         else:
             press_kb_button('right')
-            time.sleep(THINK_TIME)
+            time.sleep(think_time)
             press_kb_button('right')
-        time.sleep(THINK_TIME)
+        time.sleep(think_time)
         q.append(new_branch_is_not_left(i))
         if DEBUG:
             print(i, q)
 
-    time.sleep(THINK_TIME)
+    time.sleep(think_time)
     if expected_score % 2 == 1:
         if q.popleft():
             press_kb_button('left')
-            time.sleep(THINK_TIME)
         else:
             press_kb_button('right')
-            time.sleep(THINK_TIME)
 
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        main(100)
+        main(1000)
     else:
         main(int(sys.argv[1]))

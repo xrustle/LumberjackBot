@@ -123,7 +123,51 @@ def main(expected_score):
             press_kb_button('right')
 
 
+def test_10_frames():
+    """
+    Функция сбора 10 скриншотов для анализа при очень быстрой игре
+    """
+    x0 = 432
+    y0 = 650
+    w = 518 - x0
+    h = 1007 - y0
+    box = (x0, y0, x0 + w, y0 + h)
+
+    mouse_pos(START_CURSOR_POSITION)
+    mouse_click()
+    time.sleep(THINK_TIME * 2)
+    press_kb_button('space')
+    time.sleep(0.1)
+    q = first_parse()
+    think_time = 0.005
+
+    im = ImageGrab.grab(box)
+    im.save(os.getcwd() + '\\{:02}_start.png'.format(0), 'PNG')
+
+    for i in range(5):
+        if q.popleft():
+            press_kb_button('left')
+            im = ImageGrab.grab(box)
+            im.save(os.getcwd() + '\\{:02}_left.png'.format(2 * i + 1), 'PNG')
+            time.sleep(think_time)
+            press_kb_button('left')
+            im = ImageGrab.grab(box)
+            im.save(os.getcwd() + '\\{:02}_left.png'.format(2 * i + 2), 'PNG')
+            print(i)
+        else:
+            press_kb_button('right')
+            im = ImageGrab.grab(box)
+            im.save(os.getcwd() + '\\{:02}_right.png'.format(2 * i + 1), 'PNG')
+            time.sleep(think_time)
+            press_kb_button('right')
+            im = ImageGrab.grab(box)
+            im.save(os.getcwd() + '\\{:02}_right.png'.format(2 * i + 2), 'PNG')
+            print(i)
+        time.sleep(think_time)
+
+
 if __name__ == '__main__':
+    # test_10_frames()
     if len(sys.argv) == 1:
         main(730)
     else:

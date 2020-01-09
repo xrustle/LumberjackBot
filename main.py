@@ -9,17 +9,17 @@ import time
 DEBUG = False  # If you need to save snapshots to analise and print data
 
 # Performance
-CLICK_TIME = 0.005  # 0.02
-THINK_TIME = 0.017  # 0.02
+CLICK_TIME = 0.01  # 0.02
+THINK_TIME = 0.02  # 0.02
 
 # Coordinates
 X0 = 472
-Y0 = 770
+Y0 = 700
 W = 488 - X0
 H = 957 - Y0
 START_CURSOR_POSITION = (33, 90)
-BRANCHES_Y = list(range(40, 141, 25))
-NEW_BRANCH_MAX_Y = 25
+BRANCHES_Y = list(range(110, 211, 25))
+NEW_BRANCH_MAX_Y = 95
 LEFT_X = 0
 RIGHT_X = 15
 
@@ -100,7 +100,7 @@ def main(expected_score):
         print('Start', q)
 
     for i in range(0, expected_score - 1, 2):
-        if i > 100:
+        if i > 20:
             think_time = THINK_TIME
         if q.popleft():
             press_kb_button('left')
@@ -125,6 +125,6 @@ def main(expected_score):
 
 if __name__ == '__main__':
     if len(sys.argv) == 1:
-        main(1000)
+        main(730)
     else:
         main(int(sys.argv[1]))

@@ -22,6 +22,7 @@ BRANCHES_Y = list(range(110, 211, 25))
 NEW_BRANCH_MAX_Y = 95
 LEFT_X = 0
 RIGHT_X = 15
+GAME_WIDTH = 150
 
 BOX = (X0, Y0, X0 + W, Y0 + H)
 
@@ -29,6 +30,8 @@ LEFT = True
 RIGHT = False
 
 BRANCH_COLOR = (161, 116, 56)  # Tree's branch brown color
+SKY_COLOR = (211, 247, 255)  # Clear sky color
+GRASS_COLOR = (174, 221, 127)
 
 BUTTONS = {'space': 0x20,
            'left': 0x25,
@@ -37,6 +40,30 @@ BUTTONS = {'space': 0x20,
 
 def mouse_pos(cord):
     win32api.SetCursorPos((X0 + cord[0], Y0 + cord[1]))
+
+
+def get_game_box_size():
+    left_x, top_y, bottom_y = None, None, None
+    im = ImageGrab.grab()
+    for y in range(im.height):
+        for x in range(im.width):
+            if im.getpixel((x, y)) == SKY_COLOR:
+                top_y = y
+                left_x = x
+                break
+        else:
+            continue
+        break
+
+    if top_y:
+        for y in range(top_y, im.height):
+            if im.getpixel((left_x, y)) == GRASS_COLOR:
+                bottom_y = y
+    if top_y and bottom_y:
+        box = (left_x, top_y, left_x + GAME_WIDTH, bottom_y)
+        return box
+    else:
+        return None
 
 
 def press_kb_button(*args):
@@ -166,9 +193,127 @@ def test_10_frames():
         time.sleep(think_time)
 
 
+def fast_game(score):
+    box = get_game_box_size()
+    think_time = 0.02
+
+    if not box:
+        print("Game box didn't exist")
+        return -1
+
+    win32api.SetCursorPos((box[0], box[1]))
+    mouse_click()
+    time.sleep(THINK_TIME * 2)
+    press_kb_button('space')
+    time.sleep(0.2)
+
+    im = ImageGrab.grab(box)
+    im.save(os.getcwd() + '\\00.png', 'PNG')
+    left_branch_x, right_branch_x = None, None
+    for x in range(0, im.width):
+        if im.getpixel((x, 0)) == BRANCH_COLOR:
+            left_branch_x = x - 1
+            right_branch_x = left_branch_x + 13
+            break
+
+    start_y = None
+    start_branch = None
+    if left_branch_x:
+        for y in range(im.height):
+            if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+                start_y = y + 3  # Сдвиг на 3, потому что ветка слева шире вдоль дерева
+                start_branch = 'left'
+                break
+            elif im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
+                start_y = y
+                start_branch = 'right'
+                break
+
+    q = deque()
+    q.append('left')
+
+    print(start_y)
+    print(start_branch)
+
+    if not start_y or not start_branch:
+        return -1
+
+    for y in reversed(range(start_y, im.height - 40, 25)):
+        if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+            q.append('right')
+        elif im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
+            q.append('left')
+        else:
+            break
+    last_start_y = start_y
+    last_start_branch = start_branch
+
+    print(q)
+
+    for i in range(5):
+        move_direction = q.popleft()
+        press_kb_button(move_direction)
+        time.sleep(think_time)
+        im = ImageGrab.grab(box)
+        im.save(os.getcwd() + '\\{:02}_{}.png'.format(2 * i, move_direction), 'PNG')
+        if last_start_branch == 'left':
+            if im.getpixel((left_branch_x, last_start_y - 3)) == BRANCH_COLOR:
+                for y in range(last_start_y - 3, last_start_y - 50, -1):
+                    if im.getpixel((left_branch_x, y)) != BRANCH_COLOR:
+                        new_y = y - 1
+                        break
+            else:
+                for y in range(last_start_y - 3, last_start_y + 50):
+                    if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+                        new_y = y
+                        break
+        else:
+            if im.getpixel((right_branch_x, last_start_y)) == BRANCH_COLOR:
+                for y in range(last_start_y, last_start_y - 50, -1):
+                    if im.getpixel((right_branch_x, y)) != BRANCH_COLOR:
+                        new_y = y - 1
+                        break
+            else:
+                for y in range(last_start_y, last_start_y + 50):
+                    if im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
+                        new_y = y
+                        break
+        print(last_start_y, new_y, (new_y - last_start_y) % 20)
+        last_start_y = new_y
+        press_kb_button(move_direction)
+        time.sleep(think_time)
+        im = ImageGrab.grab(box)
+        im.save(os.getcwd() + '\\{:02}_right.png'.format(2 * i + 1), 'PNG')
+        if last_start_branch == 'left':
+            if im.getpixel((left_branch_x, last_start_y - 3)) == BRANCH_COLOR:
+                for y in range(last_start_y - 3, last_start_y - 50, -1):
+                    if im.getpixel((left_branch_x, y)) != BRANCH_COLOR:
+                        new_y = y - 1
+                        break
+            else:
+                for y in range(last_start_y - 3, last_start_y + 50):
+                    if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+                        new_y = y
+                        break
+        else:
+            if im.getpixel((right_branch_x, last_start_y)) == BRANCH_COLOR:
+                for y in range(last_start_y, last_start_y - 50, -1):
+                    if im.getpixel((right_branch_x, y)) != BRANCH_COLOR:
+                        new_y = y - 1
+                        break
+            else:
+                for y in range(last_start_y, last_start_y + 50):
+                    if im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
+                        new_y = y
+                        break
+        print(last_start_y, new_y, (new_y - last_start_y) % 20)
+        last_start_y = new_y
+
+
 if __name__ == '__main__':
     # test_10_frames()
-    if len(sys.argv) == 1:
-        main(730)
-    else:
-        main(int(sys.argv[1]))
+    # if len(sys.argv) == 1:
+    #     main(730)
+    # else:
+    #     main(int(sys.argv[1]))
+    fast_game(10)

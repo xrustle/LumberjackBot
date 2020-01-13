@@ -1,7 +1,6 @@
 from PIL import ImageGrab
 from collections import deque
 import os
-import sys
 import win32api
 import win32con
 import time
@@ -9,10 +8,11 @@ import time
 DEBUG = False  # If you need to save snapshots to analise and print data
 
 # Performance
-CLICK_TIME = 0.001
+CLICK_TIME = 0.0005
 
 # Coordinates
 GAME_WIDTH = 150
+HALF_SCREEN = 67
 
 LEFT = True
 RIGHT = False
@@ -22,8 +22,8 @@ SKY_COLOR = (211, 247, 255)  # Clear sky color
 GRASS_COLOR = (174, 221, 127)
 
 BUTTONS = {'space': 0x20,
-           'left': 0x25,
-           'right': 0x27}
+           'right': 0x25,
+           'left': 0x27}
 
 
 def get_game_box_size():
@@ -44,7 +44,7 @@ def get_game_box_size():
             if im.getpixel((left_x, y)) == GRASS_COLOR:
                 bottom_y = y
     if top_y and bottom_y:
-        box = (left_x, top_y, left_x + GAME_WIDTH, bottom_y)
+        box = (left_x + 67, top_y, left_x + 82, bottom_y)
         return box
     else:
         return None
@@ -83,39 +83,42 @@ def play(score):
     if DEBUG:
         im.save(os.getcwd() + '\\00.png', 'PNG')
 
-    left_branch_x, right_branch_x = None, None
+    branches_x = {}
     for x in range(0, im.width):
         if im.getpixel((x, 0)) == BRANCH_COLOR:
-            left_branch_x = x - 2
-            right_branch_x = left_branch_x + 14
+            branches_x['left'] = x - 2
+            branches_x['right'] = x + 12
             break
 
     start_y = None
     start_branch = None
-    if left_branch_x:
-        for y in range(im.height):
-            if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+    if not branches_x:
+        print('Branches not found')
+        return -1
+
+    for y in range(im.height):
+        for side in branches_x:
+            if im.getpixel((branches_x[side], y)) == BRANCH_COLOR:
                 start_y = y
-                start_branch = 'left'
+                start_branch = side
                 break
-            elif im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
-                start_y = y
-                start_branch = 'right'
-                break
+        else:
+            continue
+        break
 
     q = deque()
     q.append('left')
 
     if not start_y or not start_branch:
+        print('Start branch position not found')
         return -1
 
     for y in reversed(range(start_y, im.height - 40, 25)):
-        if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
-            q.append('right')
-        elif im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
-            q.append('left')
-        else:
-            break
+        for side in branches_x:
+            if im.getpixel((branches_x[side], y)) == BRANCH_COLOR:
+                q.append(side)
+                break
+
     last_start_y = start_y
     last_start_branch = start_branch
 
@@ -124,54 +127,40 @@ def play(score):
         for j in range(2):
             press_kb_button(move_direction)
             im = ImageGrab.grab(box)
-            if im.getpixel((left_branch_x + 2, 0)) != BRANCH_COLOR:
+            if im.getpixel((branches_x['left'] + 2, 0)) != BRANCH_COLOR:
                 print(f'Game over! Score {i + j - 1}')
                 return 0
 
             if DEBUG:
                 im.save(os.getcwd() + '\\{:02}_{}.png'.format(i + j + 1, move_direction), 'PNG')
-            if last_start_branch == 'left':
-                if im.getpixel((left_branch_x, last_start_y)) == BRANCH_COLOR:
-                    if im.getpixel((left_branch_x, last_start_y - 1)) == BRANCH_COLOR:
-                        for y in range(last_start_y + 6, last_start_y + 50):
-                            if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
-                                last_start_y = y
-                                break
-                else:
-                    for y in range(last_start_y, last_start_y + 50):
-                        if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
+
+            if im.getpixel((branches_x[last_start_branch], last_start_y)) == BRANCH_COLOR:
+                if im.getpixel((branches_x[last_start_branch], last_start_y - 1)) == BRANCH_COLOR:
+                    for y in range(last_start_y + 6, last_start_y + 50):
+                        if im.getpixel((branches_x[last_start_branch], y)) == BRANCH_COLOR:
                             last_start_y = y
                             break
             else:
-                if im.getpixel((right_branch_x, last_start_y)) == BRANCH_COLOR:
-                    if im.getpixel((right_branch_x, last_start_y - 1)) == BRANCH_COLOR:
-                        for y in range(last_start_y + 6, last_start_y + 50):
-                            if im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
-                                last_start_y = y + 1
-                                break
-                else:
-                    for y in range(last_start_y, last_start_y + 50):
-                        if im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
-                            last_start_y = y
-                            break
+                for y in range(last_start_y, last_start_y + 50):
+                    if im.getpixel((branches_x[last_start_branch], y)) == BRANCH_COLOR:
+                        last_start_y = y
+                        break
+
             if DEBUG:
                 print(i + j + 1, last_start_y)
 
             # Идем вверх и добавляем новые ветки
             for y in range(last_start_y - 25, 0, -25):
-                if im.getpixel((left_branch_x, y)) == BRANCH_COLOR:
-                    q.append('right')
-                    last_start_y = y
-                    last_start_branch = 'left'
-                elif im.getpixel((right_branch_x, y)) == BRANCH_COLOR:
-                    q.append('left')
-                    last_start_y = y
-                    last_start_branch = 'right'
-                else:
-                    break
+                for side in branches_x:
+                    if im.getpixel((branches_x[side], y)) == BRANCH_COLOR:
+                        q.append(side)
+                        last_start_y = y
+                        last_start_branch = side
+                        break
+
             if DEBUG:
                 print(q)
 
 
 if __name__ == '__main__':
-    play(score=800)
+    play(score=1000)
